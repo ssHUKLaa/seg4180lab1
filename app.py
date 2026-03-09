@@ -16,11 +16,11 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 
-IMG_SIZE  = 512
-MEAN      = [0.485, 0.456, 0.406]
-STD       = [0.229, 0.224, 0.225]
+IMG_SIZE = 512
+MEAN = [0.485, 0.456, 0.406]
+STD = [0.229, 0.224, 0.225]
 CKPT_PATH = os.getenv("MODEL_CHECKPOINT", "checkpoints/best_model.pth")
-DEVICE    = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def _load_model():
@@ -60,14 +60,14 @@ def predict():
 
     file = request.files["file"]
     try:
-        image  = Image.open(io.BytesIO(file.read())).convert("RGB")
+        image = Image.open(io.BytesIO(file.read())).convert("RGB")
         orig_w, orig_h = image.size
 
         img_t = _transform(image).unsqueeze(0).to(DEVICE)
         with torch.no_grad():
-            output = model(img_t)["out"]           # (1, 1, H, W)
-            prob   = torch.sigmoid(output)[0, 0]   # (H, W)
-            mask   = (prob > 0.5).cpu().numpy().astype(np.uint8) * 255
+            output = model(img_t)["out"]  # (1, 1, H, W)
+            prob = torch.sigmoid(output)[0, 0]  # (H, W)
+            mask = (prob > 0.5).cpu().numpy().astype(np.uint8) * 255
 
         # Resize mask back to original image dimensions
         mask_img = Image.fromarray(mask).resize((orig_w, orig_h), Image.NEAREST)
@@ -88,6 +88,6 @@ def predict():
 
 
 if __name__ == "__main__":
-    port  = int(os.getenv("PORT", 5000))
+    port = int(os.getenv("PORT", 5000))
     debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
     app.run(host="0.0.0.0", port=port, debug=debug)
