@@ -1,0 +1,79 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # ── Stage 1: Lint ──────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Lint app.py and tests/
+        run: flake8 app.py tests/ --max-line-length=120
+
+  # ── Stage 2: Test ──────────────────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # Install CPU-only PyTorch first to avoid downloading the large CUDA build
+      # that requirements.txt pins (torch==2.5.1+cu121).
+      - name: Install CPU PyTorch
+        run: |
+          pip install torch==2.5.1 torchvision==0.20.1 \
+            --index-url https://download.pytorch.org/whl/cpu
+
+      # Install everything else, skipping torch/torchvision/torchaudio lines
+      # which are already satisfied above.
+      - name: Install remaining dependencies
+        run: |
+          grep -vE "^(torch|torchvision|torchaudio)" requirements.txt \
+            | pip install -r /dev/stdin
+
+      - name: Run tests with coverage
+        run: pytest tests/ -v --cov=app --cov-report=term-missing
+
+  # ── Stage 3: Build & push Docker image ────────────────────────────────────
+  docker:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    # Only push on direct pushes to main/master, not on pull requests
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/seg4180lab1:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/seg4180lab1:${{ github.sha }}

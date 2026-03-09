@@ -1,0 +1,23 @@
+# Local secrets — never bake into the image
+.env
+
+# Python virtual environment
+.venv/
+venv/
+
+# Tests and CI config don't belong in the image
+tests/
+.github/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Git
+.git/
+.gitignore
+
+# Editor
+.vscode/
+*.DS_Store

@@ -130,6 +130,16 @@ celerybeat.pid
 # Environments
 .env
 .venv
+
+# Generated dataset (large binary files)
+dataset/
+
+# SAM model weights (large binary)
+*.pth
+
+# Training checkpoints and plots
+checkpoints/
+plots/
 env/
 venv/
 ENV/
