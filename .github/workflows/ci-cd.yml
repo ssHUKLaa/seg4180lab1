@@ -43,12 +43,8 @@ jobs:
           pip install torch==2.5.1 torchvision==0.20.1 \
             --index-url https://download.pytorch.org/whl/cpu
 
-      # Install everything else, skipping torch/torchvision/torchaudio lines
-      # which are already satisfied above.
-      - name: Install remaining dependencies
-        run: |
-          grep -vE "^(torch|torchvision|torchaudio)" requirements.txt \
-            | pip install -r /dev/stdin
+      - name: Install test dependencies
+        run: pip install flask python-dotenv pytest pytest-cov
 
       - name: Run tests with coverage
         run: pytest tests/ -v --cov=app --cov-report=term-missing
